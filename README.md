@@ -1,9 +1,9 @@
 # Richards Equation Example
 
-> 尝试求解土壤水运动方程
+> 求解土壤水运动方程
 
-- [x] Bonan 2021
-- [ ] diffeq
+- [x] `Bonan 2021`：计算速度快，但公式复杂
+- [x] `diffeq`: 公式清晰，但计算速度过慢
 
 
 ## References

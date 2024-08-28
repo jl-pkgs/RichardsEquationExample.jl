@@ -6,10 +6,21 @@ using Plots
 function van_genuchten_K(θ; param)
   (; θs, θr, Ks, α, n, m) = param
   Se = (θ - θr) / (θs - θr)
-  Se = clamp(Se, 0, 1)
-  effective_saturation = Se^0.5
-  term = (1 - (1 - Se^(1 / m))^m)^2
-  return Ks * effective_saturation * term
+  # Se = clamp(Se, 0, 1)
+  # effective_saturation = Se^0.5
+  # term = (1 - (1 - Se^(1 / m))^m)^2
+  # return Ks * effective_saturation * term
+  
+  if Se <= 1
+    # Special case for:
+    # - `soil_texture = 1`: Haverkamp et al. (1977) sand
+    # - `soil_texture = 2`: Yolo light clay
+    ψ = van_genuchten_ψ(θ; param)
+    Ks * 1.175e6 / (1.175e6 + abs(ψ)^4.74) # Haverkamp et al. (1977) sand
+    # Ks * 124.6 / (124.6 + abs(ψ)^1.77)   # Yolo light clay
+  else 
+    Ks
+  end
 end
 
 # Function to calculate pressure head psi from water content
@@ -41,7 +52,7 @@ function soil_moisture_transport(du, u, p, t)
 
   # @inbounds 
   @inbounds for i in 2:n-1
-    Q_up = cal_Q(i, K, ψ, z)
+    Q_up = cal_Q(i, K, ψ, z) # 多计算了1次
     Q_down = cal_Q(i + 1, K, ψ, z)
     Δz = z₊ₕ[i-1] - z₊ₕ[i] # 
     du[i] = -(Q_up - Q_down) / Δz
@@ -50,7 +61,7 @@ function soil_moisture_transport(du, u, p, t)
   ## boundary
   i = 1
   K₊ₕ_up = K[1]
-  Q_up = -K₊ₕ_up * ((ψ0 - ψ[i]) / (0 - z[i]/2) + 1)
+  Q_up = -K₊ₕ_up * ((ψ0 - ψ[i]) / (0 - z[i]) + 1)
   Q_down = cal_Q(i + 1, K, ψ, z)
   Δz = 0 - z₊ₕ[i]
   du[i] = -(Q_up - Q_down) / Δz
@@ -77,7 +88,9 @@ param = (; θs, θr, Ks, α, n, m)
 
 n = 150
 dz = ones(n)
+Q = zeros(n)
 z, z₊ₕ, dz₊ₕ = soil_depth_init(dz)
 
 dt = 5
 ntim = 0.8 * 3600 / dt
+p = (; dz, dt, θ0, ψ0, Q, z, z₊ₕ, K=zeros(n), ψ=zeros(n), param=param)

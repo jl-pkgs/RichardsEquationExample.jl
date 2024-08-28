@@ -3,7 +3,6 @@ include("main_ode.jl")
 # n = 100
 u0 = fill(0.1, n) |> collect # Example initial soil moisture profile
 tspan = (0.0, 0.8 * 3600)  # Time span for the simulation
-p = (; dz, dt, θ0, ψ0, z, z₊ₕ, K=zeros(n), ψ=zeros(n), param=param)
 
 
 prob = ODEProblem(soil_moisture_transport, u0, tspan, p);
