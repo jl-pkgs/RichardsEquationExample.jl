@@ -12,13 +12,18 @@ n = 150
 z, z₊ₕ, Δz₊ₕ = soil_depth_init(Δz)
 
 
-u0 = fill(0.1, n) |> collect # Example initial soil moisture profile
-tspan = (0.0, 0.8 * 3600)  # Time span for the simulation
-p = Soil{Float64}(; n=150, ψ0, z, z₊ₕ, Δz, Δz₊ₕ)
+function solve_ode()
+  u0 = fill(0.1, n) |> collect # Example initial soil moisture profile
+  tspan = (0.0, 0.8 * 3600)  # Time span for the simulation
+  p = Soil{Float64}(; n=150, ψ0, z, z₊ₕ, Δz, Δz₊ₕ)
+  prob = ODEProblem(RichardsEquation, u0, tspan, p)
+  solve(prob, Tsit5(), reltol=1e-6, abstol=1e-6, saveat=200)
+end
+
 
 begin
-  prob = ODEProblem(RichardsEquation, u0, tspan, p)
-  @time sol = solve(prob, Tsit5(), reltol=1e-6, abstol=1e-6, saveat=200)
+  @time sol = solve_ode()
+
   @testset "Richards" begin
     max_error = maximum(abs, sol.u[end] .- bonan["θ"])
     @test max_error < 1e-3
